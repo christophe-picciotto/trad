@@ -1,0 +1,9 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Fenetre UI 'main' : commandes applicatives (translate, save/has/clear_api_key) + API d'evenements (listen/emit) pour afficher la traduction.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default"
+  ]
+}

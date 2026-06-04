@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#9333EA"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" ry="116" fill="url(#bg)"/>
+  <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
+    <!-- "A" latin (haut-gauche) -->
+    <g stroke-width="32">
+      <path d="M120 256 L180 110 L240 256"/>
+      <path d="M145 205 L215 205"/>
+    </g>
+    <!-- "文" CJK, approxime par traits (bas-droite) -->
+    <g stroke-width="26">
+      <path d="M338 260 L351 286"/>
+      <path d="M286 300 L404 300"/>
+      <path d="M302 326 L388 410"/>
+      <path d="M388 326 L302 410"/>
+    </g>
+  </g>
+</svg>

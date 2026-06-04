@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trad</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* Elements specifiques au moteur API (ajout par-dessus styles.css). */
+    .settings-btn {
+      margin-left: auto;
+      cursor: pointer;
+    }
+    .settings-panel {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 10px 16px;
+      background: #f3f4f6;
+      border-bottom: 1px solid #d1d5db;
+    }
+    .settings-panel[hidden] { display: none; }
+    .settings-panel input[type="password"] {
+      flex: 1 1 280px;
+      min-width: 200px;
+      padding: 7px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-family: monospace;
+    }
+    .key-status { font-size: 0.85rem; }
+    .key-status[data-ok="1"] { color: #15803d; }
+    .key-status[data-ok="0"] { color: #b91c1c; }
+    .hint { font-size: 0.8rem; color: #6b7280; }
+    .hint code { background: #e5e7eb; padding: 1px 5px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <header class="toolbar">
+    <h1 class="app-title">Trad</h1>
+    <label class="lang-field">
+      Modele
+      <select id="model">
+        <option value="claude-opus-4-8">Opus 4.8 — qualite max</option>
+        <option value="claude-sonnet-4-6">Sonnet 4.6 — equilibre</option>
+        <option value="claude-haiku-4-5">Haiku 4.5 — rapide / eco</option>
+      </select>
+    </label>
+    <label class="lang-field">
+      Traduire vers
+      <select id="lang">
+        <option value="francais" selected>Francais</option>
+        <option value="anglais">Anglais</option>
+        <option value="espagnol">Espagnol</option>
+        <option value="allemand">Allemand</option>
+        <option value="italien">Italien</option>
+        <option value="portugais">Portugais</option>
+      </select>
+    </label>
+    <button id="translate-btn" type="button">Traduire</button>
+    <span id="status" class="status" role="status" aria-live="polite"></span>
+    <button id="settings-btn" type="button" class="settings-btn" title="Reglages : cle API">Cle API</button>
+  </header>
+
+  <section id="settings-panel" class="settings-panel" hidden>
+    <label class="lang-field key-field" style="flex:1 1 280px;">
+      Cle API Anthropic
+      <input id="api-key" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false" />
+    </label>
+    <button id="save-key-btn" type="button">Enregistrer</button>
+    <button id="clear-key-btn" type="button">Effacer</button>
+    <span id="key-status" class="key-status"></span>
+    <span class="hint">Obtenir une cle : <code>console.anthropic.com/settings/keys</code></span>
+  </section>
+
+  <main class="panes">
+    <section class="pane pane-source">
+      <div class="pane-head">Texte source</div>
+      <textarea id="source" placeholder="Collez ou tapez le texte a traduire... (Ctrl+Entree)"></textarea>
+    </section>
+    <section class="pane pane-target">
+      <div class="pane-head">
+        Traduction
+        <button id="copy-btn" type="button" class="copy-btn">Copier</button>
+      </div>
+      <textarea id="target" readonly placeholder="La traduction s'affichera ici..."></textarea>
+    </section>
+  </main>
+
+  <script src="main.js"></script>
+</body>
+</html>

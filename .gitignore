@@ -1,0 +1,14 @@
+/target
+**/target
+node_modules
+dist
+.DS_Store
+*.log
+/src-tauri/gen
+
+# Secrets (defense en profondeur - n'existe pas aujourd'hui, evite un futur commit accidentel)
+.env
+.env.*
+
+# Reglage de build LOCAL (chemin machine-specifique hors drvfs ; chacun adapte le sien)
+.cargo/config.toml
