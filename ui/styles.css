@@ -88,7 +88,14 @@ body {
 .status[data-kind="error"] { color: var(--error); font-weight: 600; }
 .status[data-kind="busy"] { color: var(--muted); }
 
-/* ----- Zone principale : 2 colonnes egales ------------------------------- */
+/* ----- Zone principale : historique (aside) + 2 panneaux ----------------- */
+.workspace {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+}
+
 .panes {
   flex: 1 1 auto;
   display: grid;
@@ -96,7 +103,148 @@ body {
   gap: 12px;
   padding: 12px;
   min-height: 0;
+  min-width: 0;
 }
+
+/* ----- Panneau historique (colonne de gauche) ---------------------------- */
+.history-panel {
+  flex: 0 0 250px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+}
+/* Masque via le bouton "Historique" de la barre du haut. */
+.history-panel[hidden] { display: none; }
+
+.history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
+  font-size: 12px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: #fbfcfe;
+  border-bottom: 1px solid var(--border);
+}
+
+.mini-btn {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 9px;
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+.mini-btn:hover { color: var(--text); border-color: var(--primary); }
+/* Etat "cliquer une 2e fois pour confirmer" (evite un dialogue natif bloquant). */
+.mini-btn[data-confirm="1"] {
+  color: #fff;
+  background: var(--error);
+  border-color: var(--error);
+}
+
+.history-search {
+  margin: 8px 10px;
+  padding: 6px 9px;
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.history-search:focus { outline: none; border-color: var(--primary); }
+
+.history-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0 8px 10px;
+  list-style: none;
+}
+
+.history-item {
+  position: relative;
+  padding: 8px 26px 8px 10px;
+  margin-bottom: 5px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.history-item:hover { background: #f3f6fb; border-color: var(--border); }
+.history-item[aria-current="true"] {
+  background: #eaf1fe;
+  border-color: var(--primary);
+}
+
+.history-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.history-lang {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #e8eefb;
+  color: var(--primary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+/* Extraits : 2 lignes max pour la source, 1 pour la traduction. */
+.history-source,
+.history-translation {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+.history-source { color: var(--text); -webkit-line-clamp: 2; }
+.history-translation { color: var(--muted); -webkit-line-clamp: 1; margin-top: 2px; }
+
+/* Croix de suppression : discrete, apparait au survol de l'entree. */
+.history-del {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  line-height: 16px;
+  font-size: 13px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+}
+.history-item:hover .history-del { opacity: 1; }
+.history-del:hover { color: #fff; background: var(--error); }
+.history-del:focus-visible { opacity: 1; outline: 2px solid var(--primary); }
+
+.history-empty {
+  margin: 4px 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.history-empty[hidden] { display: none; }
 
 .pane {
   display: flex;
@@ -155,4 +303,12 @@ textarea::placeholder { color: #9aa3b2; }
   .panes { grid-template-columns: 1fr; }
   .toolbar { flex-wrap: wrap; }
   .status { margin-left: 0; flex-basis: 100%; }
+  /* L'historique passe au-dessus, en bandeau de hauteur limitee. */
+  .workspace { flex-direction: column; }
+  .history-panel {
+    flex: 0 0 auto;
+    max-height: 190px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
 }

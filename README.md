@@ -16,6 +16,7 @@ Trad brings DeepL-style **"double Ctrl+C"** translation to your desktop — but 
 - ⌨️ **Global double Ctrl+C**: select text in any app, tap Ctrl+C twice, the window pops up with the translation.
 - 🧠 **Claude API**, model selectable: Opus 4.8 (quality), Sonnet 4.6 (balanced), Haiku 4.5 (fast & cheap).
 - 🌍 Plain text **and JSON** (translates the values, keeps the keys — handy for i18n files).
+- 🕘 **Local history**: every translation is saved on disk; click any entry to bring it back instantly (no extra API call). Searchable, deletable, and can be turned off entirely.
 - 🪶 Tiny native binary (Tauri), lives in the system tray, remembers your model & language.
 
 ### Privacy — what the app actually does
@@ -24,6 +25,7 @@ Trad uses a few sensitive-looking permissions. Here is exactly what it does — 
 - **Global keyboard hook** (`src-tauri/src/hotkey.rs`, via `rdev`): it only *observes* keystrokes to detect the double Ctrl+C. It inspects **only the Ctrl and C keys**, **records nothing**, logs nothing, sends nothing — every other key falls into `_ => {}`.
 - **Clipboard**: read **only** on the explicit double-Ctrl+C gesture (never in the background). The selected text is sent to the Anthropic API to be translated, so **don't translate data you wouldn't share with a third party** (see Anthropic's privacy policy).
 - **API key**: stored in your **OS keychain** (Windows Credential Manager, via the `keyring` crate) — **never** in plain text on disk. You provide **your own** key; none is bundled.
+- **History**: translations are stored **locally only**, in plain JSON at `%APPDATA%\app.trad.desktop\history.json` (last 300, oldest dropped). Nothing is uploaded anywhere. Uncheck *"Enregistrer l'historique"* in the settings panel to stop recording, and *"Vider"* to wipe the file.
 - The app lives in the **system tray** (closing the window hides it; quit via the tray menu). It does **not** add itself to Windows startup — you create the shortcut yourself if you want it.
 - ⚠️ A global keyboard hook may trigger a **false positive** on some heuristic antivirus software. The code is fully open for you to read.
 
@@ -53,6 +55,7 @@ Trad apporte la traduction **« double Ctrl+C »** façon DeepL sur ton bureau �
 - ⌨️ **Double Ctrl+C global** : sélectionne du texte dans n'importe quelle application, appuie deux fois sur Ctrl+C, la fenêtre surgit avec la traduction.
 - 🧠 **API Claude**, modèle au choix : Opus 4.8 (qualité), Sonnet 4.6 (équilibre), Haiku 4.5 (rapide & économique).
 - 🌍 Texte brut **et JSON** (traduit les valeurs, conserve les clés — pratique pour les fichiers i18n).
+- 🕘 **Historique local** : chaque traduction est enregistrée sur le disque ; un clic sur une entrée la recharge instantanément (sans rappeler l'API). Recherche, suppression à l'unité, et désactivation possible.
 - 🪶 Binaire natif léger (Tauri), résident dans la barre système, mémorise modèle & langue.
 
 ### Vie privée — ce que fait réellement l'app
@@ -61,6 +64,7 @@ Trad utilise quelques permissions qui peuvent sembler sensibles. Voici exactemen
 - **Hook clavier global** (`src-tauri/src/hotkey.rs`, via `rdev`) : il *observe* uniquement les frappes pour détecter le double Ctrl+C. Il n'inspecte **que les touches Ctrl et C**, **n'enregistre rien**, ne loggue rien, ne transmet rien — toutes les autres touches tombent dans `_ => {}`.
 - **Presse-papier** : lu **uniquement** au geste explicite double Ctrl+C (jamais en arrière-plan). Le texte sélectionné est envoyé à l'API Anthropic pour être traduit, donc **ne traduis pas de données que tu ne partagerais pas avec un tiers** (voir la politique de confidentialité d'Anthropic).
 - **Clé API** : stockée dans le **coffre-fort de l'OS** (Gestionnaire d'identifiants Windows, via la crate `keyring`) — **jamais** en clair sur le disque. Tu fournis **ta propre** clé ; aucune n'est embarquée.
+- **Historique** : les traductions sont stockées **localement uniquement**, en JSON lisible dans `%APPDATA%\app.trad.desktop\history.json` (300 dernières, les plus anciennes tombent). Rien n'est envoyé nulle part. Décoche *« Enregistrer l'historique »* dans le panneau des réglages pour ne plus rien enregistrer, et *« Vider »* pour supprimer le fichier.
 - L'app vit dans la **barre système** (fermer la fenêtre la cache ; quitter via le menu du tray). Elle **ne** s'ajoute **pas** au démarrage de Windows — tu crées le raccourci toi-même si tu le souhaites.
 - ⚠️ Un hook clavier global peut déclencher un **faux positif** sur certains antivirus heuristiques. Le code est entièrement lisible.
 

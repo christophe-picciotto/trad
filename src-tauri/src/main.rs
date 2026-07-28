@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod commands;
+mod history;
 mod hotkey;
 
 use tauri::{
@@ -24,7 +25,10 @@ fn main() {
             commands::translate,
             commands::save_api_key,
             commands::has_api_key,
-            commands::clear_api_key
+            commands::clear_api_key,
+            history::history_list,
+            history::history_delete,
+            history::history_clear
         ])
         .setup(|app| {
             // Detecteur global du double Ctrl+C (facon DeepL), thread dedie.

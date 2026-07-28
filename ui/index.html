@@ -34,6 +34,15 @@
     .key-status[data-ok="0"] { color: #b91c1c; }
     .hint { font-size: 0.8rem; color: #6b7280; }
     .hint code { background: #e5e7eb; padding: 1px 5px; border-radius: 4px; }
+    .hist-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: #374151;
+      cursor: pointer;
+      user-select: none;
+    }
   </style>
 </head>
 <body>
@@ -60,6 +69,8 @@
     </label>
     <button id="translate-btn" type="button">Traduire</button>
     <span id="status" class="status" role="status" aria-live="polite"></span>
+    <button id="history-btn" type="button" class="settings-btn" title="Afficher / masquer l'historique"
+            aria-controls="history-panel" aria-expanded="true">Historique</button>
     <button id="settings-btn" type="button" class="settings-btn" title="Reglages : cle API">Cle API</button>
   </header>
 
@@ -72,20 +83,37 @@
     <button id="clear-key-btn" type="button">Effacer</button>
     <span id="key-status" class="key-status"></span>
     <span class="hint">Obtenir une cle : <code>console.anthropic.com/settings/keys</code></span>
+    <label class="hist-toggle" title="Decocher pour ne plus rien enregistrer sur le disque">
+      <input id="history-enabled" type="checkbox" checked />
+      Enregistrer l'historique
+    </label>
   </section>
 
-  <main class="panes">
-    <section class="pane pane-source">
-      <div class="pane-head">Texte source</div>
-      <textarea id="source" placeholder="Collez ou tapez le texte a traduire... (Ctrl+Entree)"></textarea>
-    </section>
-    <section class="pane pane-target">
-      <div class="pane-head">
-        Traduction
-        <button id="copy-btn" type="button" class="copy-btn">Copier</button>
+  <main class="workspace">
+    <aside id="history-panel" class="history-panel">
+      <div class="history-head">
+        <span class="history-title">Historique</span>
+        <button id="history-clear-btn" type="button" class="mini-btn" title="Tout effacer">Vider</button>
       </div>
-      <textarea id="target" readonly placeholder="La traduction s'affichera ici..."></textarea>
-    </section>
+      <input id="history-search" type="search" class="history-search" placeholder="Rechercher..."
+             autocomplete="off" spellcheck="false" />
+      <ul id="history-list" class="history-list"></ul>
+      <p id="history-empty" class="history-empty">Aucune traduction enregistree pour l'instant.</p>
+    </aside>
+
+    <div class="panes">
+      <section class="pane pane-source">
+        <div class="pane-head">Texte source</div>
+        <textarea id="source" placeholder="Collez ou tapez le texte a traduire... (Ctrl+Entree)"></textarea>
+      </section>
+      <section class="pane pane-target">
+        <div class="pane-head">
+          Traduction
+          <button id="copy-btn" type="button" class="copy-btn">Copier</button>
+        </div>
+        <textarea id="target" readonly placeholder="La traduction s'affichera ici..."></textarea>
+      </section>
+    </div>
   </main>
 
   <script src="main.js"></script>

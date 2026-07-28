@@ -4,10 +4,12 @@
 //! La cle API est stockee dans le coffre-fort de l'OS (Windows Credential Manager)
 //! via la crate `keyring` : jamais en clair sur le disque.
 //!
-//! Flux : UI --invoke('translate', {text, targetLang, model})--> translate()
+//! Flux : UI --invoke('translate', {text, targetLang, model, saveHistory})--> translate()
 //!        translate() --POST https://api.anthropic.com/v1/messages--> reponse
 //!        translate() --emit("trad:chunk", traduction) + emit("trad:done")--> UI
+//!        translate() --history::record + emit("trad:history", entree)--> UI
 
+use crate::history;
 use serde_json::json;
 use tauri::{AppHandle, Emitter};
 
@@ -56,12 +58,16 @@ fn read_api_key() -> Result<String, String> {
 ///
 /// Non-streaming : un POST, une reponse. Emet "trad:chunk" (la traduction complete)
 /// puis "trad:done" ; en cas d'echec, "trad:error" + Err.
+///
+/// Si `save_history` est vrai (defaut cote UI), la traduction reussie est ecrite
+/// dans l'historique local et l'entree creee est emise via "trad:history".
 #[tauri::command]
 pub async fn translate(
     app: AppHandle,
     text: String,
     target_lang: String,
     model: String,
+    save_history: Option<bool>,
 ) -> Result<(), String> {
     let api_key = read_api_key()?;
 
@@ -153,7 +159,17 @@ pub async fn translate(
         return Err("Reponse vide".to_string());
     }
 
-    app.emit("trad:chunk", translation).map_err(|e| e.to_string())?;
+    app.emit("trad:chunk", translation.clone())
+        .map_err(|e| e.to_string())?;
+
+    // Historique local (best-effort : un echec disque ne doit pas casser la traduction
+    // qui vient d'etre affichee). Desactivable depuis les reglages de l'UI.
+    if save_history.unwrap_or(true) {
+        if let Some(entry) = history::record(&app, &text, &translation, &target_lang, &model) {
+            let _ = app.emit("trad:history", entry);
+        }
+    }
+
     app.emit("trad:done", ()).map_err(|e| e.to_string())?;
     Ok(())
 }
