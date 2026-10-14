@@ -14,9 +14,9 @@ Trad brings DeepL-style **"double Ctrl+C"** translation to your desktop — but 
 
 ### Features
 - ⌨️ **Global double Ctrl+C**: select text in any app, tap Ctrl+C twice, the window pops up with the translation.
-- 🧠 **Claude API**, model selectable: Opus 4.8 (quality), Sonnet 4.6 (balanced), Haiku 5.5 (fast & cheap).
+- 🧠 **Claude API**, model selectable: Haiku 5.5 (fast & cheap, the default), Opus 5.5 (highest quality), Sonnet 5.5 (balanced). If their safety filters decline a translation, Opus 5.5 and Sonnet 5.5 automatically hand it over to a fallback model.
 - 🌍 Plain text **and JSON** (translates the values, keeps the keys — handy for i18n files), into 16 languages.
-- 📊 **Cost at a glance**: tokens sent and received, time and cost in dollars of every translation, in a status bar; each history entry shows its own cost, with the total at the bottom.
+- 📊 **Cost at a glance**: tokens sent and received, time and cost in dollars of every translation, in a status bar; each history entry shows the model used, its tokens and its cost, with the total at the bottom.
 - 🌐 **Interface in 16 languages**, picked from your Windows language (English otherwise) and changeable in the settings.
 - 🕘 **Local history**: every translation is saved on disk; click any entry to bring it back instantly (no extra API call). Searchable, deletable, resizable column, and can be turned off entirely.
 - 🪶 Tiny native binary (Tauri), lives in the system tray, remembers your model & language.
@@ -55,9 +55,9 @@ Trad apporte la traduction **« double Ctrl+C »** façon DeepL sur ton bureau �
 
 ### Fonctionnalités
 - ⌨️ **Double Ctrl+C global** : sélectionne du texte dans n'importe quelle application, appuie deux fois sur Ctrl+C, la fenêtre surgit avec la traduction.
-- 🧠 **API Claude**, modèle au choix : Opus 4.8 (qualité), Sonnet 4.6 (équilibre), Haiku 5.5 (rapide & économique).
+- 🧠 **API Claude**, modèle au choix : Haiku 5.5 (rapide & économique, par défaut), Opus 5.5 (qualité maximale), Sonnet 5.5 (équilibre). Si leurs filtres de sécurité refusent une traduction, Opus 5.5 et Sonnet 5.5 la confient automatiquement à un modèle de secours.
 - 🌍 Texte brut **et JSON** (traduit les valeurs, conserve les clés — pratique pour les fichiers i18n), vers 16 langues.
-- 📊 **Le coût sous les yeux** : jetons envoyés et reçus, durée et coût en dollars de chaque traduction, dans une barre d'état ; chaque entrée de l'historique affiche son coût, et le total figure en bas.
+- 📊 **Le coût sous les yeux** : jetons envoyés et reçus, durée et coût en dollars de chaque traduction, dans une barre d'état ; chaque entrée de l'historique affiche le modèle utilisé, ses jetons et son coût, et le total figure en bas.
 - 🌐 **Interface en 16 langues**, choisie d'après la langue de Windows (anglais sinon) et modifiable dans les réglages.
 - 🕘 **Historique local** : chaque traduction est enregistrée sur le disque ; un clic sur une entrée la recharge instantanément (sans rappeler l'API). Recherche, suppression à l'unité, colonne redimensionnable, et désactivation possible.
 - 🪶 Binaire natif léger (Tauri), résident dans la barre système, mémorise modèle & langue.

@@ -76,10 +76,16 @@ function detecterLangue() {
 }
 
 /// Texte traduit. Cle absente : repli sur l'anglais, puis sur la cle elle-meme.
+/// Cle a formes plurielles ({ one, few, many, other… }) : la forme est choisie par
+/// Intl.PluralRules d'apres params.count (le nombre BRUT ; params.n est deja formate pour
+/// l'affichage, « 1 234 »), repli sur « other ».
 /// En arabe (rtl), chaque valeur inseree est ISOLEE (U+2068 ... U+2069) : un message de
 /// l'API en anglais ou un montant ne melange pas sa ponctuation avec celle de la phrase.
 function t(cle, params) {
   let s = I18N[uiLang]?.[cle] ?? I18N.en[cle] ?? cle;
+  if (s && typeof s === 'object') {
+    s = s[reglesPluriel.select(Number(params?.count ?? 0))] ?? s.other ?? '';
+  }
   if (params) {
     const rtl = LANGUES_RTL.has(uiLang);
     s = s.replace(/\{(\w+)\}/g, (m, k) => {
@@ -91,9 +97,12 @@ function t(cle, params) {
   return s;
 }
 
-// Formats de nombres, durees et montants : ceux de la langue de l'interface.
+// Formats de nombres, durees et montants, et regles de pluriel : ceux de la langue de
+// l'interface.
 let fmtNombre, fmtSecondes, fmtCoutFin, fmtCoutLarge;
+let reglesPluriel = new Intl.PluralRules('en');
 function majFormateurs() {
+  reglesPluriel = new Intl.PluralRules(uiLang);
   fmtNombre = new Intl.NumberFormat(uiLang);
   fmtSecondes = new Intl.NumberFormat(uiLang, {
     style: 'unit', unit: 'second', unitDisplay: 'short', maximumFractionDigits: 1,
@@ -238,9 +247,14 @@ function texteErreur(err) {
 const PREFS = 'tradPrefs';
 let prefs = {};
 
-// Valeurs retirees -> leur remplacant. Sans ca, un <select> qui recoit une valeur
-// absente se vide, et doTranslate() retomberait en silence sur Opus 4.8.
-const MODELES_REMPLACES = { 'claude-haiku-4-5': 'claude-haiku-5-5' };
+// Modeles retires de la liste -> leur remplacant (preferences et restauration
+// d'historique). Sans ca, un <select> qui recoit une valeur absente se VIDE, et
+// doTranslate() retomberait en silence sur son modele de repli.
+const MODELES_REMPLACES = {
+  'claude-haiku-4-5': 'claude-haiku-5-5',
+  'claude-opus-4-8': 'claude-opus-5-5',
+  'claude-sonnet-4-6': 'claude-sonnet-5-5',
+};
 // Langues cibles d'avant le 14/10/2026 (noms francais) -> codes.
 const LANGUES_ANCIENNES = {
   francais: 'fr', anglais: 'en', espagnol: 'es', allemand: 'de', italien: 'it', portugais: 'pt-PT',
@@ -265,8 +279,11 @@ function savePrefs() {
     uiLang: $uiLang.value || 'auto',
     histEnabled: $histEnabled.checked,
     histShown: !$histPanel.hidden,
-    histWidth: largeurVoulue,
   };
+  // Largeur de l'historique : memorisee SEULEMENT si l'utilisateur l'a reglee a la poignee.
+  // Sinon la cle est retiree et la largeur par defaut, qui peut evoluer, s'applique.
+  if (largeurChoisie) prefs.histWidth = largeurVoulue;
+  else delete prefs.histWidth;
   try {
     localStorage.setItem(PREFS, JSON.stringify(prefs));
   } catch {}
@@ -280,7 +297,13 @@ function appliquerPrefs() {
   $lang.value = estLangue(cible) ? cible : uiLang;
   if (prefs.histEnabled === false) $histEnabled.checked = false;
   if (prefs.histShown === false) toggleHistoryPanel(false);
-  if (Number.isFinite(prefs.histWidth)) largeurVoulue = prefs.histWidth;
+  // 250 = ANCIENNE largeur par defaut, que la version e899de9 enregistrait a chaque
+  // sauvegarde, meme sans reglage : on l'oublie pour que le defaut actuel (320) s'applique.
+  if (prefs.histWidth === 250) delete prefs.histWidth;
+  if (Number.isFinite(prefs.histWidth)) {
+    largeurVoulue = prefs.histWidth;
+    largeurChoisie = true;
+  }
   appliquerLargeur();
 }
 
@@ -352,10 +375,18 @@ $clearKey.addEventListener('click', async () => {
 //  Statistiques (barre sous la barre d'outils) : la derniere traduction, ou
 //  l'entree rechargee depuis l'historique. Le total est en pied d'historique.
 // =========================================================================
+// Noms courts des modeles : ceux de la liste, leurs modeles de SECOURS (Opus 5, Opus 4.8,
+// Sonnet 5 : affiches si l'un d'eux a refait une traduction refusee) et les anciens
+// (entrees d'historique). Prefixes : les plus longs AVANT (« claude-opus-5-5 » avant
+// « claude-opus-5 », sinon Opus 5.5 s'afficherait « Opus 5 »).
 const NOMS_MODELES = [
+  ['claude-haiku-5-5', 'Haiku 5.5'],
+  ['claude-opus-5-5', 'Opus 5.5'],
+  ['claude-sonnet-5-5', 'Sonnet 5.5'],
+  ['claude-opus-5', 'Opus 5'],
+  ['claude-sonnet-5', 'Sonnet 5'],
   ['claude-opus-4-8', 'Opus 4.8'],
   ['claude-sonnet-4-6', 'Sonnet 4.6'],
-  ['claude-haiku-5-5', 'Haiku 5.5'],
   ['claude-haiku-4-5', 'Haiku 4.5'],
 ];
 function nomModele(id) {
@@ -460,13 +491,39 @@ function renderItem(entry) {
   const when = document.createElement('span');
   when.textContent = formatDate(entry.ts);
   meta.append(lang, when);
-  // Cout de la traduction, aligne en face (les anciennes entrees n'en ont pas).
-  if (Number.isFinite(entry.costUsd)) {
-    const cout = document.createElement('span');
-    cout.className = 'history-cost';
-    cout.title = t('history.costTitle');
-    cout.textContent = formatCout(entry.costUsd);
-    meta.append(cout);
+  // Modele qui a traduit : celui qui a REELLEMENT servi (le modele de secours si la
+  // traduction a ete refaite), sinon le modele choisi (anciennes entrees).
+  const modeleId = entry.servedModel || entry.model;
+  if (modeleId) {
+    const modele = document.createElement('span');
+    modele.className = 'history-model';
+    modele.textContent = nomModele(modeleId);
+    meta.append(modele);
+  }
+  // En face : jetons (total, detail en infobulle) puis cout. Les anciennes entrees
+  // n'ont ni l'un ni l'autre.
+  const envoyes = entry.inputTokens, recus = entry.outputTokens;
+  const aJetons = Number.isFinite(envoyes) && Number.isFinite(recus);
+  if (aJetons || Number.isFinite(entry.costUsd)) {
+    const chiffres = document.createElement('span');
+    chiffres.className = 'history-chiffres';
+    if (aJetons) {
+      const total = envoyes + recus;
+      const jetons = document.createElement('span');
+      jetons.className = 'history-tokens';
+      jetons.textContent = t('history.tokens', { n: fmtNombre.format(total), count: total });
+      jetons.title = t('stats.sent', { n: fmtNombre.format(envoyes) }) + ' · '
+        + t('stats.received', { n: fmtNombre.format(recus) });
+      chiffres.append(jetons);
+    }
+    if (Number.isFinite(entry.costUsd)) {
+      const cout = document.createElement('span');
+      cout.className = 'history-cost';
+      cout.title = t('history.costTitle');
+      cout.textContent = formatCout(entry.costUsd);
+      chiffres.append(cout);
+    }
+    meta.append(chiffres);
   }
 
   const src = document.createElement('p');
@@ -538,7 +595,9 @@ function restoreEntry(entry) {
   statsAffichees = Number.isFinite(entry.inputTokens) || Number.isFinite(entry.costUsd)
     ? {
         origine: 'history',
-        model: entry.model,
+        // Le modele qui a REELLEMENT traduit (secours eventuel), comme sur la ligne
+        // d'historique et comme le cout ; le <select> garde, lui, le modele choisi.
+        model: entry.servedModel || entry.model,
         inputTokens: entry.inputTokens,
         outputTokens: entry.outputTokens,
         durationMs: entry.durationMs,
@@ -652,10 +711,13 @@ $histBtn.addEventListener('click', () => {
 //  Entree = largeur par defaut.
 // =========================================================================
 const HIST_MIN = 180;
-const HIST_DEFAUT = 250;
-/// Largeur choisie par l'utilisateur (memorisee). L'affichage la borne a la fenetre
-/// sans l'ecraser : une fenetre retrecie puis agrandie retrouve la largeur choisie.
+const HIST_DEFAUT = 320; // mesure du 14/10 (Segoe UI) : modele + jetons + cout sur une ligne
+/// Largeur voulue (memorisee si l'utilisateur l'a choisie). L'affichage la borne a la
+/// fenetre sans l'ecraser : une fenetre retrecie puis agrandie retrouve cette largeur.
 let largeurVoulue = HIST_DEFAUT;
+/// Vrai seulement apres un reglage a la poignee (ou une largeur deja memorisee) : sinon
+/// rien n'est enregistre et le defaut de la version en cours s'applique.
+let largeurChoisie = false;
 
 function borner(px) {
   const max = Math.max(HIST_MIN, Math.round(window.innerWidth * 0.5));
@@ -670,6 +732,13 @@ function appliquerLargeur() {
 }
 function choisirLargeur(px) {
   largeurVoulue = borner(px);
+  largeurChoisie = true;
+  appliquerLargeur();
+}
+/// Retour a la largeur par defaut : plus rien de memorise, le defaut suivra les versions.
+function reinitialiserLargeur() {
+  largeurVoulue = HIST_DEFAUT;
+  largeurChoisie = false;
   appliquerLargeur();
 }
 const enRtl = () => document.documentElement.dir === 'rtl';
@@ -709,7 +778,7 @@ $resizer.addEventListener('keydown', (e) => {
   } else if (e.key === 'End') {
     choisirLargeur(Infinity);
   } else if (e.key === 'Enter') {
-    choisirLargeur(HIST_DEFAUT);
+    reinitialiserLargeur();
   } else {
     return;
   }
@@ -717,7 +786,7 @@ $resizer.addEventListener('keydown', (e) => {
   savePrefs();
 });
 $resizer.addEventListener('dblclick', () => {
-  choisirLargeur(HIST_DEFAUT);
+  reinitialiserLargeur();
   savePrefs();
 });
 window.addEventListener('resize', appliquerLargeur);
@@ -792,7 +861,7 @@ async function doTranslate() {
     return;
   }
   const targetLang = $lang.value || uiLang;
-  const model = $model.value || 'claude-opus-4-8';
+  const model = $model.value || 'claude-haiku-5-5';
   $target.value = '';
   selectedId = null;
   // Rien a gauche pendant l'appel : l'invite « prochaine traduction » serait trompeuse,

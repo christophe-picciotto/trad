@@ -160,7 +160,7 @@ body {
 /* ----- Panneau historique (colonne de gauche) ---------------------------- */
 /* Largeur = --history-width, posee par main.js (poignee, memorisee). */
 .history-panel {
-  flex: 0 0 var(--history-width, 250px);
+  flex: 0 0 var(--history-width, 320px);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -279,10 +279,13 @@ body.resizing { user-select: none; cursor: col-resize; }
   border-color: var(--primary);
 }
 
+/* Ligne du haut d'une entree : langue, heure, modele, puis EN FACE jetons + cout. Si la
+   colonne est trop etroite, le groupe jetons + cout passe a la ligne d'un bloc. */
 .history-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 2px 6px;
   font-size: 10.5px;
   color: var(--muted);
   margin-bottom: 3px;
@@ -296,13 +299,23 @@ body.resizing { user-select: none; cursor: col-resize; }
   text-transform: uppercase;
   letter-spacing: .03em;
 }
-/* Cout de la traduction, aligne en fin de ligne (« en face » du badge et de l'heure). */
-.history-cost {
+/* Modele qui a traduit. */
+.history-model {
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* Jetons + cout, alignes en fin de ligne (« en face » du badge, de l'heure et du modele). */
+.history-chiffres {
   margin-inline-start: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.history-cost {
   color: var(--ok);
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
 /* Extraits : 2 lignes max pour la source, 1 pour la traduction. */

@@ -173,8 +173,9 @@ pub async fn translate(
         )
     };
 
-    // PAS de temperature / top_p (rejetes par Opus 4.8/4.7 et Haiku 5.5). PAS de thinking
-    // (inutile a traduire) : sans ce champ, Opus 4.8 et Sonnet 4.6 ne reflechissent pas.
+    // PAS de temperature / top_p (rejetes par les modeles 4.7 et suivants). PAS de champ
+    // thinking : sur les modeles 5.x la reflexion adaptative est le defaut et ne se coupe pas
+    // ({"type":"disabled"} = 400 sur Opus 5.5 et Sonnet 5.5) -- on la borne par l'effort.
     let mut body = json!({
         "model": model,
         "max_tokens": 4096,
@@ -182,29 +183,43 @@ pub async fn translate(
         "messages": [{ "role": "user", "content": text }]
     });
 
-    // Haiku 5.5 (sorti le 07/10/2026) reflechit PAR DEFAUT (effort "medium") : on le borne a
-    // "low", le niveau prevu pour les requetes simples. Banc du 14/10/2026, 24 traductions :
-    // aucune reflexion, memes traductions qu'en "medium" ; le mode sans reflexion
-    // ({"type":"disabled"}) perdait parfois un mot. Son tokenizer compte ~30 % de tokens de
-    // plus pour le meme texte et une reflexion eventuelle se paie sur max_tokens : plafond
-    // releve pour ne pas tronquer les longs textes (on ne paie que ce qui est genere).
-    if model.starts_with("claude-haiku-5") {
+    // Modeles 5.x (Haiku 5.5, Opus 5.5, Sonnet 5.5 -- les trois de l'UI depuis le 14/10/2026) :
+    // effort "low", le niveau prevu pour les requetes simples (defaut : medium sur Haiku et
+    // Opus, high sur Sonnet). Bancs du 14/10/2026 (24 traductions Haiku, 24 Opus + Sonnet) :
+    // memes traductions qu'a l'effort par defaut, presque aucune reflexion ; le mode sans
+    // reflexion de Haiku perdait parfois un mot. Leur tokenizer compte ~30 % de tokens de plus
+    // que les anciens et une reflexion eventuelle se paie sur max_tokens : plafond releve
+    // pour ne pas tronquer les longs textes (on ne paie que ce qui est genere).
+    let generation_5 = ["claude-haiku-5", "claude-opus-5", "claude-sonnet-5"]
+        .iter()
+        .any(|p| model.starts_with(p));
+    if generation_5 {
         body["max_tokens"] = json!(16000);
         body["output_config"] = json!({ "effort": "low" });
+    }
+
+    // Modele de SECOURS (Opus 5.5 et Sonnet 5.5) : leurs filtres de securite peuvent refuser
+    // une traduction (texte de securite informatique, par exemple). Avec `fallbacks:
+    // "default"`, l'API la refait elle-meme sur le modele recommande pour la categorie du
+    // refus (Opus 4.8 / Opus 5, Sonnet 5) au lieu de renvoyer le refus. Pas pour Haiku 5.5 :
+    // il n'a pas de modele de secours (le parametre y est sans effet, ou refuse).
+    let avec_secours = model.starts_with("claude-opus-5") || model.starts_with("claude-sonnet-5");
+    if avec_secours {
+        body["fallbacks"] = json!("default");
     }
 
     // Chronometre : de l'envoi a la reception complete de la reponse.
     let debut = Instant::now();
     let client = reqwest::Client::new();
-    let resp = match client
+    let mut requete = client
         .post("https://api.anthropic.com/v1/messages")
         .header("x-api-key", api_key)
         .header("anthropic-version", "2023-06-01")
-        .header("content-type", "application/json")
-        .json(&body)
-        .send()
-        .await
-    {
+        .header("content-type", "application/json");
+    if avec_secours {
+        requete = requete.header("anthropic-beta", "server-side-fallback-2026-07-01");
+    }
+    let resp = match requete.json(&body).send().await {
         Ok(r) => r,
         Err(e) => return echec(&app, TradError::avec("network", e)),
     };
@@ -244,7 +259,8 @@ pub async fn translate(
     }
 
     // `content` est un tableau de blocs ; on concatene les blocs de type texte. Les blocs
-    // `thinking` de Haiku 5.5 n'ont pas de champ `text` : ils sont ignores.
+    // `thinking` des modeles 5.x et le bloc `fallback` (marque du passage au modele de
+    // secours) n'ont pas de champ `text` : ils sont ignores.
     let translation = payload
         .get("content")
         .and_then(|c| c.as_array())

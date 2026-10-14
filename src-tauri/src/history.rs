@@ -50,6 +50,10 @@ pub struct Entry {
     pub cost_usd: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub duration_ms: Option<u64>,
+    /// Modele qui a REELLEMENT traduit (reponse de l'API) : differe de `model` (le modele
+    /// choisi, qui sert a la restauration) si le modele de secours a refait la traduction.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub served_model: Option<String>,
 }
 
 /// Anciennes valeurs de `target_lang` (noms francais de l'UI d'avant le 14/10/2026)
@@ -171,6 +175,7 @@ pub fn record(
         output_tokens: Some(stats.output_tokens),
         cost_usd: stats.cost_usd,
         duration_ms: Some(stats.duration_ms),
+        served_model: Some(stats.model.clone()),
     };
     entries.insert(0, entry.clone());
     entries.truncate(MAX_ENTRIES);
