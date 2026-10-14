@@ -14,7 +14,8 @@
   --primary: #2563eb;     /* couleur primaire (bouton Traduire) */
   --primary-hover: #1d4ed8;
   --primary-disabled: #aebed4;
-  --ok: #1a8a3a;          /* statut termine */
+  --ok: #167a33;          /* statut termine, couts (5,4:1 sur blanc : seuil WCAG 4,5 tenu
+                             aussi en petit texte et sur les fonds bleutes de l'historique) */
   --error: #dc2626;       /* statut erreur */
 }
 
@@ -30,10 +31,14 @@ body {
 }
 
 /* ----- Barre du haut : titre + selecteur de langue + bouton + statut ------ */
+/* Passage a la ligne autorise : selon la langue, les libelles peuvent ne pas tenir sur
+   une ligne (mesure du 14/10/2026 a 1000 px : le russe depasse de 36 px) -- sans ca,
+   la page defilerait a l'horizontale. */
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
+  gap: 8px 14px;
   padding: 10px 16px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
@@ -54,7 +59,7 @@ body {
   font-size: 13px;
 }
 
-#lang {
+#model, #lang, #ui-lang {
   background: #fff;
   color: var(--text);
   border: 1px solid var(--border);
@@ -63,7 +68,7 @@ body {
   font-size: 13px;
   cursor: pointer;
 }
-#lang:focus { outline: none; border-color: var(--primary); }
+#model:focus, #lang:focus, #ui-lang:focus { outline: none; border-color: var(--primary); }
 
 #translate-btn {
   background: var(--primary);
@@ -78,15 +83,61 @@ body {
 #translate-btn:hover:not(:disabled) { background: var(--primary-hover); }
 #translate-btn:disabled { background: var(--primary-disabled); cursor: default; }
 
-/* Bandeau d'etat (pousse a droite) : claude.ai pret / login requis / en cours */
+/* Message d'etat (termine / erreur / en cours), en fin de barre d'etat. Proprietes
+   "inline" (debut/fin de ligne) plutot que left/right : l'arabe s'ecrit de droite a
+   gauche et toute la mise en page s'inverse d'elle-meme. Un long message d'erreur
+   passe a la ligne dans la barre au lieu de deborder. */
 .status {
+  margin-inline-start: auto;
+  min-width: 0;
   font-size: 13px;
   color: var(--muted);
-  margin-left: auto;
+  overflow-wrap: anywhere;
 }
 .status[data-kind="ok"] { color: var(--ok); font-weight: 600; }
 .status[data-kind="error"] { color: var(--error); font-weight: 600; }
 .status[data-kind="busy"] { color: var(--muted); }
+
+/* ----- Statistiques : sous la barre du haut, au-dessus des textes ---------- */
+.stats-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  min-height: 30px;
+  padding: 5px 16px;
+  font-size: 12px;
+  color: var(--muted);
+  background: #fbfcfe;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.stats-main {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  min-width: 0;
+}
+.stats-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.stats-model {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #e8eefb;
+  color: var(--primary-hover); /* bleu fonce : contraste 4,5:1 tenu sur le fond de la pastille */
+  font-weight: 600;
+}
+.stats-cost { color: var(--ok); font-weight: 600; }
+.stats-hint { font-style: italic; }
+/* Une erreur prend toute la place : l'invite « les statistiques s'afficheront ici »
+   s'efface devant elle. */
+.stats-bar:has(.status[data-kind="error"]) .stats-hint { display: none; }
 
 /* ----- Zone principale : historique (aside) + 2 panneaux ----------------- */
 .workspace {
@@ -107,16 +158,47 @@ body {
 }
 
 /* ----- Panneau historique (colonne de gauche) ---------------------------- */
+/* Largeur = --history-width, posee par main.js (poignee, memorisee). */
 .history-panel {
-  flex: 0 0 250px;
+  flex: 0 0 var(--history-width, 250px);
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
   background: var(--panel);
-  border-right: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
 }
 /* Masque via le bouton "Historique" de la barre du haut. */
 .history-panel[hidden] { display: none; }
+
+/* Poignee de redimensionnement : 8 px de zone de saisie, posee sur la bordure de
+   l'historique (marges negatives : elle ne prend aucune place). Decalee VERS LES
+   PANNEAUX (1 px dans l'historique, 7 px dans la marge des panneaux) : centree, elle
+   recouvrait le bord de la barre de defilement de la liste. */
+.history-resizer {
+  flex: 0 0 8px;
+  margin-inline: -1px -7px;
+  position: relative;
+  z-index: 1;
+  cursor: col-resize;
+  touch-action: none;
+}
+.history-resizer[hidden] { display: none; }
+.history-resizer::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline: 0 5px; /* trait de 3 px, sur la bordure de l'historique */
+  border-radius: 2px;
+  background: transparent;
+  transition: background .15s;
+}
+.history-resizer:hover::after,
+.history-resizer[data-dragging="1"]::after { background: var(--primary); }
+.history-resizer:focus { outline: none; }
+.history-resizer:focus-visible::after { background: var(--primary); }
+/* Pendant le glisser : pas de selection de texte, curseur constant partout. */
+body.resizing { user-select: none; cursor: col-resize; }
 
 .history-head {
   display: flex;
@@ -131,8 +213,17 @@ body {
   background: #fbfcfe;
   border-bottom: 1px solid var(--border);
 }
+/* Colonne reduite au minimum (180 px) : c'est le titre qui cede (points de suspension),
+   jamais le bouton « Vider / Confirmer ? », qui debordait sinon de la colonne. */
+.history-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .mini-btn {
+  flex: 0 0 auto;
   background: transparent;
   color: var(--muted);
   border: 1px solid var(--border);
@@ -141,6 +232,7 @@ body {
   font-size: 11px;
   text-transform: none;
   letter-spacing: 0;
+  white-space: nowrap;
   cursor: pointer;
 }
 .mini-btn:hover { color: var(--text); border-color: var(--primary); }
@@ -174,7 +266,8 @@ body {
 
 .history-item {
   position: relative;
-  padding: 8px 26px 8px 10px;
+  padding-block: 8px;
+  padding-inline: 10px 26px; /* 26 px en fin de ligne : la croix de suppression */
   margin-bottom: 5px;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -198,10 +291,18 @@ body {
   padding: 1px 6px;
   border-radius: 999px;
   background: #e8eefb;
-  color: var(--primary);
+  color: var(--primary-hover); /* bleu fonce : contraste 4,5:1 tenu sur le fond de la pastille */
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: .03em;
+}
+/* Cout de la traduction, aligne en fin de ligne (« en face » du badge et de l'heure). */
+.history-cost {
+  margin-inline-start: auto;
+  color: var(--ok);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* Extraits : 2 lignes max pour la source, 1 pour la traduction. */
@@ -222,7 +323,7 @@ body {
 .history-del {
   position: absolute;
   top: 5px;
-  right: 5px;
+  inset-inline-end: 5px;
   width: 18px;
   height: 18px;
   padding: 0;
@@ -246,6 +347,20 @@ body {
 }
 .history-empty[hidden] { display: none; }
 
+/* Pied de l'historique : cout total des traductions qui ont des statistiques. */
+.history-total {
+  flex: 0 0 auto;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: end;
+  background: #fbfcfe;
+  border-top: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.history-total[hidden] { display: none; }
+
 .pane {
   display: flex;
   flex-direction: column;
@@ -260,6 +375,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 9px 14px;
   font-size: 12px;
   letter-spacing: .04em;
@@ -269,7 +385,17 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
+/* Le titre du panneau cede la place au bouton « Copier » (« Kopieren » etait rogne en
+   allemand entre 641 et 657 px de large) : il se coupe par des points de suspension,
+   jamais au milieu d'un mot (« TRANSLATIO / N » avec overflow-wrap:anywhere). */
+.pane-head > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .copy-btn {
+  flex: 0 0 auto;
   background: transparent;
   color: var(--muted);
   border: 1px solid var(--border);
@@ -297,18 +423,30 @@ textarea#source, textarea#target {
 }
 textarea#target { background: var(--panel-ro); }
 textarea::placeholder { color: #9aa3b2; }
+/* Zone VIDE : l'invite suit le sens de l'interface (a droite en arabe). Des qu'on tape,
+   dir="auto" reprend la main et suit le sens du texte saisi. */
+textarea:placeholder-shown { direction: inherit; }
+
+/* Fenetre moyenne (2 panneaux etroits) : en-tetes de panneau plus compacts, pour que
+   le titre et « Copier » tiennent ensemble dans toutes les langues. */
+@media (max-width: 760px) {
+  .pane-head { padding-inline: 10px; letter-spacing: .02em; }
+  .copy-btn { padding-inline: 8px; }
+}
 
 /* ----- Responsive minimal : empiler les panneaux sur fenetre etroite ----- */
 @media (max-width: 640px) {
   .panes { grid-template-columns: 1fr; }
   .toolbar { flex-wrap: wrap; }
-  .status { margin-left: 0; flex-basis: 100%; }
-  /* L'historique passe au-dessus, en bandeau de hauteur limitee. */
+  .status { margin-inline-start: 0; flex-basis: 100%; }
+  /* L'historique passe au-dessus, en bandeau de hauteur limitee : plus de largeur
+     a regler, donc plus de poignee. */
   .workspace { flex-direction: column; }
   .history-panel {
     flex: 0 0 auto;
-    max-height: 190px;
-    border-right: 0;
+    max-height: min(190px, 28vh); /* fenetre basse : laisser de la place aux textes */
+    border-inline-end: 0;
     border-bottom: 1px solid var(--border);
   }
+  .history-resizer { display: none; }
 }

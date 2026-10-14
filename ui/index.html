@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,9 +7,14 @@
   <link rel="stylesheet" href="styles.css" />
   <style>
     /* Elements specifiques au moteur API (ajout par-dessus styles.css). */
-    .settings-btn {
-      margin-left: auto;
-      cursor: pointer;
+    .settings-btn { cursor: pointer; }
+    /* « Historique » et « Réglages » groupes en fin de barre : quand la barre passe a la
+       ligne (russe a 1000 px, fenetre etroite), ils s'y replient ENSEMBLE. */
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-inline-start: auto;
     }
     .settings-panel {
       display: flex;
@@ -46,76 +51,98 @@
   </style>
 </head>
 <body>
+  <!-- Textes : attributs data-i18n* remplis par main.js dans la langue de l'interface
+       (dictionnaires dans i18n.js). Le texte ecrit ici n'est que le repli anglais. -->
   <header class="toolbar">
     <h1 class="app-title">Trad</h1>
     <label class="lang-field">
-      Modele
+      <span data-i18n="toolbar.model">Model</span>
       <select id="model">
-        <option value="claude-opus-4-8">Opus 4.8 — qualite max</option>
-        <option value="claude-sonnet-4-6">Sonnet 4.6 — equilibre</option>
-        <option value="claude-haiku-4-5">Haiku 4.5 — rapide / eco</option>
+        <option value="claude-opus-4-8" data-i18n="model.opus">Opus 4.8 — highest quality</option>
+        <option value="claude-sonnet-4-6" data-i18n="model.sonnet">Sonnet 4.6 — balanced</option>
+        <option value="claude-haiku-5-5" data-i18n="model.haiku">Haiku 5.5 — fast, low cost</option>
       </select>
     </label>
     <label class="lang-field">
-      Traduire vers
-      <select id="lang">
-        <option value="francais" selected>Francais</option>
-        <option value="anglais">Anglais</option>
-        <option value="espagnol">Espagnol</option>
-        <option value="allemand">Allemand</option>
-        <option value="italien">Italien</option>
-        <option value="portugais">Portugais</option>
-      </select>
+      <span data-i18n="toolbar.target">Translate into</span>
+      <!-- Options generees par main.js : noms des langues dans la langue de l'interface. -->
+      <select id="lang"></select>
     </label>
-    <button id="translate-btn" type="button">Traduire</button>
-    <span id="status" class="status" role="status" aria-live="polite"></span>
-    <button id="history-btn" type="button" class="settings-btn" title="Afficher / masquer l'historique"
-            aria-controls="history-panel" aria-expanded="true">Historique</button>
-    <button id="settings-btn" type="button" class="settings-btn" title="Reglages : cle API">Cle API</button>
+    <button id="translate-btn" type="button" data-i18n="toolbar.translate">Translate</button>
+    <div class="toolbar-actions">
+      <button id="history-btn" type="button" class="settings-btn" data-i18n="toolbar.history"
+              data-i18n-title="toolbar.historyTitle" aria-controls="history-panel" aria-expanded="true">History</button>
+      <button id="settings-btn" type="button" class="settings-btn" data-i18n="toolbar.settings"
+              data-i18n-title="toolbar.settingsTitle" aria-controls="settings-panel" aria-expanded="false">Settings</button>
+    </div>
   </header>
+
+  <!-- Barre d'etat : statistiques de la derniere traduction (ou de l'entree rechargee de
+       l'historique) a gauche, message d'etat a droite. Toute la largeur de la fenetre :
+       la barre d'outils, elle, n'a pas la place d'un message dans toutes les langues.
+       Le total de l'historique est en pied de la colonne d'historique. -->
+  <section id="stats-bar" class="stats-bar">
+    <div id="stats-main" class="stats-main"></div>
+    <span id="status" class="status" role="status" aria-live="polite"></span>
+  </section>
 
   <section id="settings-panel" class="settings-panel" hidden>
     <label class="lang-field key-field" style="flex:1 1 280px;">
-      Cle API Anthropic
+      <span data-i18n="settings.apiKey">Anthropic API key</span>
       <input id="api-key" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false" />
     </label>
-    <button id="save-key-btn" type="button">Enregistrer</button>
-    <button id="clear-key-btn" type="button">Effacer</button>
-    <span id="key-status" class="key-status"></span>
-    <span class="hint">Obtenir une cle : <code>console.anthropic.com/settings/keys</code></span>
-    <label class="hist-toggle" title="Decocher pour ne plus rien enregistrer sur le disque">
+    <button id="save-key-btn" type="button" data-i18n="settings.save">Save</button>
+    <button id="clear-key-btn" type="button" data-i18n="settings.clear">Remove</button>
+    <span id="key-status" class="key-status" role="status"></span>
+    <span class="hint"><span data-i18n="settings.getKey">Get a key:</span> <code>console.anthropic.com/settings/keys</code></span>
+    <label class="lang-field">
+      <span data-i18n="settings.uiLang">Interface language</span>
+      <select id="ui-lang"></select>
+    </label>
+    <label class="hist-toggle" data-i18n-title="settings.saveHistoryTitle">
       <input id="history-enabled" type="checkbox" checked />
-      Enregistrer l'historique
+      <span data-i18n="settings.saveHistory">Save history</span>
     </label>
   </section>
 
   <main class="workspace">
     <aside id="history-panel" class="history-panel">
       <div class="history-head">
-        <span class="history-title">Historique</span>
-        <button id="history-clear-btn" type="button" class="mini-btn" title="Tout effacer">Vider</button>
+        <span class="history-title" data-i18n="history.title">History</span>
+        <button id="history-clear-btn" type="button" class="mini-btn" data-i18n="history.clear"
+                data-i18n-title="history.clearTitle">Clear</button>
       </div>
-      <input id="history-search" type="search" class="history-search" placeholder="Rechercher..."
-             autocomplete="off" spellcheck="false" />
+      <input id="history-search" type="search" class="history-search" data-i18n-placeholder="history.search"
+             data-i18n-aria-label="history.search" placeholder="Search…" autocomplete="off" spellcheck="false" />
       <ul id="history-list" class="history-list"></ul>
-      <p id="history-empty" class="history-empty">Aucune traduction enregistree pour l'instant.</p>
+      <p id="history-empty" class="history-empty"></p>
+      <!-- Cout total des traductions de l'historique qui ont des statistiques. -->
+      <div id="history-total" class="history-total" hidden></div>
     </aside>
+    <!-- Poignee de redimensionnement de l'historique : glisser, fleches du clavier,
+         double-clic = largeur par defaut. -->
+    <div id="history-resizer" class="history-resizer" role="separator" aria-orientation="vertical"
+         aria-controls="history-panel" tabindex="0" data-i18n-title="history.resize"
+         data-i18n-aria-label="history.resize"></div>
 
     <div class="panes">
       <section class="pane pane-source">
-        <div class="pane-head">Texte source</div>
-        <textarea id="source" placeholder="Collez ou tapez le texte a traduire... (Ctrl+Entree)"></textarea>
+        <div class="pane-head"><span id="source-titre" data-i18n="pane.source">Source text</span></div>
+        <textarea id="source" dir="auto" aria-labelledby="source-titre" data-i18n-placeholder="pane.sourcePlaceholder"
+                  placeholder="Paste or type the text to translate… (Ctrl+Enter)"></textarea>
       </section>
       <section class="pane pane-target">
         <div class="pane-head">
-          Traduction
-          <button id="copy-btn" type="button" class="copy-btn">Copier</button>
+          <span id="target-titre" data-i18n="pane.target">Translation</span>
+          <button id="copy-btn" type="button" class="copy-btn" data-i18n="pane.copy">Copy</button>
         </div>
-        <textarea id="target" readonly placeholder="La traduction s'affichera ici..."></textarea>
+        <textarea id="target" dir="auto" readonly aria-labelledby="target-titre" data-i18n-placeholder="pane.targetPlaceholder"
+                  placeholder="The translation will appear here…"></textarea>
       </section>
     </div>
   </main>
 
+  <script src="i18n.js"></script>
   <script src="main.js"></script>
 </body>
 </html>

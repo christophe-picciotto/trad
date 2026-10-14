@@ -4,12 +4,15 @@
 mod commands;
 mod history;
 mod hotkey;
+mod tarifs;
 
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Manager,
 };
+
+const TRAY_ID: &str = "trad-tray";
 
 fn main() {
     tauri::Builder::default()
@@ -28,20 +31,23 @@ fn main() {
             commands::clear_api_key,
             history::history_list,
             history::history_delete,
-            history::history_clear
+            history::history_clear,
+            set_tray_labels
         ])
         .setup(|app| {
             // Detecteur global du double Ctrl+C (facon DeepL), thread dedie.
             hotkey::start_listener(app.handle().clone());
 
             // --- Icone dans la barre systeme : l'app vit en arriere-plan ---
-            let open_i = MenuItem::with_id(app, "open", "Ouvrir Trad", true, None::<&str>)?;
-            let quit_i = MenuItem::with_id(app, "quit", "Quitter", true, None::<&str>)?;
+            // Libelles anglais par defaut : l'UI les remplace des son chargement par
+            // ceux de la langue de l'interface (commande `set_tray_labels`).
+            let open_i = MenuItem::with_id(app, "open", "Open Trad", true, None::<&str>)?;
+            let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open_i, &quit_i])?;
 
-            TrayIconBuilder::with_id("trad-tray")
+            TrayIconBuilder::with_id(TRAY_ID)
                 .icon(app.default_window_icon().unwrap().clone())
-                .tooltip("Trad - double Ctrl+C pour traduire")
+                .tooltip("Trad - press Ctrl+C twice to translate")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
@@ -83,6 +89,28 @@ fn main() {
         })
         .run(tauri::generate_context!())
         .expect("erreur au demarrage de l'application Tauri");
+}
+
+/// Traduit le menu et l'infobulle de l'icone de la barre systeme. Appelee par l'UI au
+/// chargement et a chaque changement de langue : la langue est choisie et memorisee
+/// cote UI, qui fournit les libelles deja traduits. On reconstruit le menu avec les
+/// MEMES identifiants ("open", "quit") : le gestionnaire `on_menu_event` reste valable.
+#[tauri::command]
+fn set_tray_labels(
+    app: tauri::AppHandle,
+    open: String,
+    quit: String,
+    tooltip: String,
+) -> Result<(), String> {
+    let Some(tray) = app.tray_by_id(TRAY_ID) else {
+        return Ok(());
+    };
+    let open_i = MenuItem::with_id(&app, "open", open, true, None::<&str>).map_err(|e| e.to_string())?;
+    let quit_i = MenuItem::with_id(&app, "quit", quit, true, None::<&str>).map_err(|e| e.to_string())?;
+    let menu = Menu::with_items(&app, &[&open_i, &quit_i]).map_err(|e| e.to_string())?;
+    tray.set_menu(Some(menu)).map_err(|e| e.to_string())?;
+    tray.set_tooltip(Some(tooltip)).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 /// Affiche et met au premier plan la fenetre "main".
